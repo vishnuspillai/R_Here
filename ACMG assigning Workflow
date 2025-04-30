@@ -1,40 +1,36 @@
 ```{r}
-# Load necessary libraries
+
 library(dplyr)
 
-# Define input and output directories
+
 input_dir <- "C:/0"
 output_dir <- "C:1"
 
-# Ensure the output directory exists
 if (!dir.exists(output_dir)) {
   dir.create(output_dir)
 }
 
-# List all files in the input directory
+
 file_list <- list.files(input_dir, pattern = "*.txt", full.names = TRUE)
 
-# Loop through each file
+
 for (input_file in file_list) {
   cat("Processing file:", input_file, "\n")
   
   
   tryCatch({
-    # Read the input file
+  
     data <- read.table(input_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE, 
                        fill = TRUE, quote = "", comment.char = "")
     
-    # Check if AAChange.refGene column exists
     if (!"AAChange.refGene" %in% colnames(data)) {
       cat("Column 'AAChange.refGene' not found in file:", input_file, "\n")
       next
     }
     
-    # Filter rows where AAChange.refGene is not "0"
     filtered_data <- data %>%
       filter(AAChange.refGene != "0")
     
-    # Check if any rows remain after filtering
     if (nrow(filtered_data) == 0) {
       cat("No rows remaining after filtering for file:", input_file, "\n")
       next
@@ -42,7 +38,6 @@ for (input_file in file_list) {
     
     
     
-    # Save the filtered data to the output directory
     output_file <- file.path(output_dir, basename(input_file))
     write.table(filtered_data, output_file, sep = "\t", row.names = FALSE, quote = FALSE)
     View(filtered_data)
@@ -58,37 +53,29 @@ for (input_file in file_list) {
 
 
 ```{r}
-# Step 1: Define the input and output directories
 input_dir <- "C:/1"  # Input directory
 output_dir <- "C:/2"  # Output directory
 
-# Step 2: Create the output directory if it doesn't exist
 if (!dir.exists(output_dir)) {
   dir.create(output_dir)
 }
 
-# Step 3: List all sample files in the input directory
 file_list <- list.files(input_dir, pattern = "*.txt", full.names = TRUE)
 
-# Debugging: Print the list of files
 cat("Input directory:", input_dir, "\n")
 cat("Files found:", paste(file_list, collapse = ", "), "\n")
 
-# Step 4: Check if any files were found
 if (length(file_list) == 0) {
   stop("No files found in the input directory. Please ensure the files are present and match the naming pattern.")
 }
 
-# Step 5: Loop through each file and process it
 for (file_path in file_list) {
   cat("Processing file:", file_path, "\n")
   
-  # Load the data
   data <- read.table(file_path, sep = "\t", header = TRUE, stringsAsFactors = FALSE, 
                      fill = TRUE, quote = "", comment.char = "")
   colnames(data)
 
-  # Step 6: Handle inconsistent rows
   column_counts <- apply(data, 1, function(row) sum(!is.na(row)))
   inconsistent_rows <- which(column_counts != max(column_counts))
   if (length(inconsistent_rows) > 0) {
@@ -96,18 +83,15 @@ for (file_path in file_list) {
     data <- data[column_counts == max(column_counts), ]
   }
   
-  # Step 7: Filter for frameshift and nonsynonymous SNVs
   filtered_data <- data[data$ExonicFunc.refGene %in% c("frameshift deletion", "nonsynonymous SNV",
                                                        "nonframeshift deletion", "stoploss",
                                                        "nonframeshift insertion", "startloss", 
                                                        "stopgain", "frameshift insertion"), ]
   
-  # Step 8: Filter only exon data
   refgen_data <- filtered_data[filtered_data$Func.refGene %in% c("exonic", "ncRNA_exonic",
                                                                  "splicing", "exonic;splicing", 
                                                                  "intergenic"), ]
   
-  # Step 9: Define the MAF classification function
   classify_maf <- function(maf) {
     if (is.na(maf)) {
       return(NA)
@@ -122,20 +106,17 @@ for (file_path in file_list) {
     }
   }
   
-  # Step 10: Identify the column indices for ExAC_ALL, ExAC_SAS, 1000g2015aug_all, esp6500siv2_all
   exac_all_col <- 13
   exac_sas_col <- 20
   g1000_col <- 34
   esp_col <- 33
   
-  # Apply the classification function to each column
   refgen_data$ExAC_ALL_AF <- sapply(refgen_data[[exac_all_col]], classify_maf)
   refgen_data$ExAC_SAS_AF <- sapply(refgen_data[[exac_sas_col]], classify_maf)
   refgen_data$g1000_AF <- sapply(refgen_data[[g1000_col]], classify_maf)
   refgen_data$esp_AF <- sapply(refgen_data[[esp_col]], classify_maf)
   
   
-  # Step 11: Reorder the columns
   columns_to_move <- c(
     "ExAC_ALL", "ExAC_ALL_AF",
     "ExAC_SAS", "ExAC_SAS_AF",       
@@ -150,7 +131,6 @@ for (file_path in file_list) {
   
   reordered_data <- refgen_data[, new_order]
   
-  # Step 12: Detect inconsistencies in AF columns
   af_columns <- c("ExAC_ALL_AF", "ExAC_SAS_AF", "esp_AF", "g1000_AF")
   
   reordered_data$AF_Inconsistency <- NA
@@ -169,7 +149,6 @@ for (file_path in file_list) {
     }
   }
   
-  # Move the inconsistency column to the front
   columns_to_move <- ("AF_Inconsistency")
   new_order <- c(
     columns_to_move,                      
@@ -178,8 +157,7 @@ for (file_path in file_list) {
   
   reordered <- reordered_data[, new_order]
   
-  # Step 13: Save the final dataset
-  sample_name <- tools::file_path_sans_ext(basename(file_path))  # Extract sample name
+  sample_name <- tools::file_path_sans_ext(basename(file_path))  
   output_file <- file.path(output_dir, paste0(sample_name, "_final.txt"))
   
   write.table(reordered, output_file, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
@@ -195,33 +173,26 @@ colnames()
 
 
 ```{r}
-# Step 1: Define input and output directories
 input_dir <- "C:/2"
 output_dir <- "C:/3"
 
-# Step 2: Ensure the output directory exists
 if (!dir.exists(output_dir)) {
   dir.create(output_dir)
 }
 
-# Step 3: List all files in the input directory
 file_list <- list.files(input_dir, pattern = "*.txt", full.names = TRUE)
 
-# Print the list of files for debugging purposes
 cat("Files found in input directory:\n")
 print(file_list)
 cat("Total number of files:", length(file_list), "\n")
 
-# Step 4: Loop through each file in the input directory
 for (input_file in file_list) {
   cat("Processing file:", input_file, "\n")
   
   tryCatch({
-    # Step 5: Read the input file
     data <- read.table(input_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE, 
                        fill = TRUE, quote = "", comment.char = "")
     
-    # Step 6: Define the list of metrics to move to the beginning
     metrics_to_move <- c(
       "SIFT_score", 
       "SIFT_pred",
@@ -240,12 +211,10 @@ for (input_file in file_list) {
       "CADD_phred"
     )
     
-    # Step 7: Reorder the columns
     available_columns <- intersect(metrics_to_move, colnames(data))
     new_order <- c(available_columns, setdiff(colnames(data), available_columns))
     reordered_data <- data[, new_order]
     
-    # Step 8: Classification functions
     classify_sift <- function(sif) {
       if (is.na(sif)) {
         return(NA)
@@ -412,7 +381,6 @@ for (input_file in file_list) {
       }
     }
     
-    # Apply classification functions
     reordered_data$SIFT_score_AF <- sapply(reordered_data$SIFT_score, classify_sift)
     reordered_data$SIFT_pred_AF <- sapply(reordered_data$SIFT_pred, classify_sift_pred)
     reordered_data$SIFT4G_AF <- sapply(reordered_data$SIFT4G_score, classify_sift_4g)
@@ -429,26 +397,22 @@ for (input_file in file_list) {
     reordered_data$M.CAP_score_AF <- sapply(reordered_data$M.CAP_score, classify_mcap)
     reordered_data$MetaRNN_score_AF <- sapply(reordered_data$MetaRNN_score, classify_metarnn)
     
-    # Step 9: List of classification columns
     classification_columns <- c(
       "SIFT_score_AF", "SIFT_pred_AF", "SIFT4G_AF", "Polyphen2_HDIV_score_AF", "Polyphen2_HVAR_score_AF", 
       "LRT_score_AF", "LRT_pred_AF", "MutationTaster_pred_AF", "FATHMM_pred_AF", "PROVEAN_score_AF", 
       "DEOGEN2_pred_AF", "CADD_phred_AF", "REVEL_score_AF", "M.CAP_score_AF", "MetaRNN_score_AF"
     )
     
-    # Ensure these columns exist in the dataset
     missing_columns <- setdiff(classification_columns, colnames(reordered_data))
     if (length(missing_columns) > 0) {
       cat("Warning: Missing classification columns in file:", input_file, "\n")
       cat("Missing columns:", paste(missing_columns, collapse = ", "), "\n")
       
-      # Add missing columns as NA columns
       for (col in missing_columns) {
         reordered_data[[col]] <- NA
       }
     }
     
-    # Step 10: Classify variants
     classify_variant <- function(row) {
       bp4_count <- sum(row == "BP4", na.rm = TRUE)
       pp3_count <- sum(row == "PP3", na.rm = TRUE)
@@ -464,19 +428,16 @@ for (input_file in file_list) {
     
     classification_results <- apply(reordered_data[, classification_columns], 1, classify_variant)
     
-    # Debugging: Check the length of the results
     cat("Number of classification results:", length(classification_results), "\n")
     if (length(classification_results) != nrow(reordered_data)) {
       cat("Error: Classification results do not match the number of rows in the dataset.\n")
-      next  # Skip to the next file
+      next  
     }
     
     reordered_data$Variant_Classification <- classification_results
     
-    # Step 11: Move the Variant_Classification column to the first position
     hdata <- reordered_data[, c(ncol(reordered_data), 1:(ncol(reordered_data) - 1))]
     
-    # Step 12: Save the processed file to the output directory
     file_name <- basename(input_file) # Extract the file name
     output_file <- file.path(output_dir, paste0("processed_", file_name))
     write.table(hdata, output_file, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
@@ -495,47 +456,36 @@ cat("All files processed successfully.\n")
 ```
 
 
-
-
-
 ```{r}
 
 
-# Step 1: Define input and output directories
 input_dir <- "C:/3"
 output_dir <- "C:/4"
 
-# Step 2: Ensure the output directory exists
 if (!dir.exists(output_dir)) {
   dir.create(output_dir)
 }
 
-# Step 3: List all files in the input directory
 file_list <- list.files(input_dir, pattern = "*.txt", full.names = TRUE)
 
-# Print the list of files for debugging purposes
 cat("Files found in input directory:\n")
 print(file_list)
 cat("Total number of files:", length(file_list), "\n")
 
-# Step 4: Loop through each file in the input directory
 for (input_file in file_list) {
   cat("Processing file:", input_file, "\n")
   
   tryCatch({
-    # Step 5: Read the input file
     data <- read.table(input_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE, 
                        fill = TRUE, quote = "", comment.char = "")
      data <- cbind(Pfam = NA, data)
-    # Step 6: Ensure the required columns exist
-    required_columns <- c("Aloft_pred", "Aloft_Confidence", "Otherinfo1")
+
+required_columns <- c("Aloft_pred", "Aloft_Confidence", "Otherinfo1")
     if (!all(required_columns %in% colnames(data))) {
       stop("One or more required columns (Aloft_pred, Aloft_Confidence, Otherinfo1) are missing from the dataset.")
     }
 
-    # Step 7: Preprocess Aloft_pred
     data$Aloft_pred <- sapply(strsplit(data$Aloft_pred, ";"), function(x) {
-      # Extract the first non-"." value
       filtered <- x[x != "."]
       if (length(filtered) > 0) {
         return(filtered[1])
@@ -544,9 +494,7 @@ for (input_file in file_list) {
       }
     })
 
-    # Step 8: Preprocess Aloft_Confidence
     data$Aloft_Confidence <- sapply(strsplit(data$Aloft_Confidence, ";"), function(x) {
-      # Extract the first non-"." value
       filtered <- x[x != "."]
       if (length(filtered) > 0) {
         return(filtered[1])
@@ -555,38 +503,29 @@ for (input_file in file_list) {
       }
     })
 
-    # Step 9: Function to classify variants based on Aloft_pred, Aloft_Confidence, and Otherinfo1
     classify_aloft <- function(pred, confidence, otherinfo1) {
-      # Skip rows with missing values
       if (is.na(pred) || is.na(confidence) || is.na(otherinfo1)) {
         return(NA)
       }
       
-      # Check for "dominant" + "high"
       if (pred == "Dominant" && confidence == "High") {
         return("PSV1")
       }
       
-      # Check for "recessive" + "high" + "hom" in Otherinfo1
       if (pred == "Recessive" && confidence == "High" && otherinfo1 == "hom") {
         return("PVS1")
       }
       
-      # Default case: assign NA
       return(NA)
     }
 
-    # Step 10: Apply the classification function to create the aloft_scores column
     data$aloft_scores <- mapply(classify_aloft, data$Aloft_pred, data$Aloft_Confidence, data$Otherinfo1)
 
-    # Step 11: Reorder columns to bring aloft_scores, Aloft_pred, Aloft_Confidence, and Otherinfo1 to the beginning
     new_column_order <- c("aloft_scores", "Aloft_pred", "Aloft_Confidence", "Otherinfo1", 
                           setdiff(colnames(data), c("aloft_scores", "Aloft_pred", "Aloft_Confidence", "Otherinfo1")))
 
-    # Reorder the dataset
     wedata <- data[, new_column_order]
 
-    # Step 12: Save the processed file to the output directory
      output_file <- file.path(output_dir, paste0("psv1_",basename (input_file)))
     write.table(wedata, output_file, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
 
@@ -603,40 +542,31 @@ for (input_file in file_list) {
 
 
 ```{r}
-# Step 1: Define input directory
 input_dir <- "C:/4"
 
-# Step 2: List all processed files in the input directory
 file_list <- list.files(input_dir, pattern = "*.txt", full.names = TRUE)
 
-# Step 3: Initialize an empty data frame to store results
 results <- data.frame(Sample = character(),
                       Gene = character(),
                       AminoAcidModification = character(),
                       stringsAsFactors = FALSE)
 
-# Step 4: Loop through each file in the input directory
 for (input_file in file_list) {
   cat("Processing file:", input_file, "\n")
   
   tryCatch({
-    # Step 5: Read the input file
     data <- read.table(input_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE, 
                        fill = TRUE, quote = "", comment.char = "")
     
-    # Step 6: Ensure the required columns exist
     required_columns <- c("Variant_Classification", "Gene.refGene", "AAChange.refGene")
     if (!all(required_columns %in% colnames(data))) {
       stop("One or more required columns (Variant_Classification, Gene.refGene, AAChange.refGene) are missing from the dataset.")
     }
     
-    # Step 7: Filter rows where Variant_Classification is "PP3"
     pp3_variants <- subset(data, Variant_Classification == "PP3")
     
-    # Step 8: Extract the gene name and amino acid modification
     pp3_variants$Gene <- pp3_variants$Gene.refGene
     pp3_variants$AminoAcidModification <- sapply(strsplit(as.character(pp3_variants$AAChange.refGene), ":"), function(x) {
-      # Extract the part after "p."
       aa_change <- x[grep("^p\\.", x)]
       if (length(aa_change) > 0) {
         return(gsub("^p\\.", "", aa_change))
@@ -645,19 +575,9 @@ for (input_file in file_list) {
       }
     })
     
-    # Step 9: Simplify the sample name for readability
-    sample_name <- tools::file_path_sans_ext(basename(input_file)) # Remove file extension
-    sample_name <- gsub("^psv1_", " ", sample_name)                # Remove "psv1_" prefix
-    sample_name <- gsub("processed", " ", sample_name)            # Remove "_processed" suffix
-    sample_name <- gsub("_", " ", sample_name)                    # Replace underscores with spaces
-    sample_name <- gsub(".avinput.hg38", " ", sample_name)
-    sample_name <- gsub("multianno", " ", sample_name)
-    sample_name <- gsub("final", " ", sample_name)
-    
-    # Add the simplified sample name to the data
+ 
     pp3_variants$Sample <- sample_name
     
-    # Step 10: Append the results to the master results data frame
     results <- rbind(results, pp3_variants[, c("Sample", "Gene", "AminoAcidModification")])
   }, error = function(e) {
     cat("Error processing file:", input_file, "\n")
@@ -665,11 +585,9 @@ for (input_file in file_list) {
   })
 }
 
-# Step 11: Print the final results as a table
 cat("\nFinal Results:\n")
 print(results)
 
-# Optional: Display the results in a neat table format using knitr::kable
 if (requireNamespace("knitr", quietly = TRUE)) {
   library(knitr)
   cat("\nFormatted Table:\n")
@@ -680,22 +598,17 @@ if (requireNamespace("knitr", quietly = TRUE)) {
 ##copy and paste the output to an excel sheet and tidy them. 
 
 ```{r}
-# Step 1: Define the path to the input and output files
 input_file <- "C:/ix.txt"  # Path to the input .txt file
 output_file <- "C:/Users/X.txt"  # Path to save the updated file
 
-# Step 2: Read the input file
-# Assuming the file is tab-delimited; adjust `sep` if necessary
 data <- read.table(input_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 
-# Step 3: Replace spaces with underscores in the Sample column
 if ("Sample" %in% colnames(data)) {
   data$Sample <- gsub(" ", "_", data$Sample)  # Replace spaces with underscores
 } else {
   stop("The 'Sample' column does not exist in the input file.")
 }
 
-# Step 4: Save the updated data to a new file
 write.table(data, output_file, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
 
 cat("Updated file saved successfully to:", output_file, "\n")
@@ -704,38 +617,30 @@ cat("Updated file saved successfully to:", output_file, "\n")
 ## pick the genes from UniprotKB and then the Pfam identification from InterPro, refill the Pfam data back to the sheet and reintegrate back to the datasets
 
 ```{r}
-# Step 1: Define input and output directories
 input_dir <- "C:/4"  # Directory containing the 83 input files
 output_dir <- "C:/5"  # Directory to save updated files
 excel_file <- "C:/X.xlsx"  # Path to the reference Excel file
 
-# Step 2: Ensure the output directory exists
 if (!dir.exists(output_dir)) {
   dir.create(output_dir)
 }
 
-# Step 3: Read the reference Excel file
 library(readxl)
 reference_data <- read_excel(excel_file)
 
-# Step 4: List all input files
 file_list <- list.files(input_dir, pattern = "*.txt", full.names = TRUE)
 
-# Step 5: Loop through each input file
 for (input_file in file_list) {
   cat("Processing file:", input_file, "\n")
   
   tryCatch({
-    # Step 6: Read the input file
     data <- read.table(input_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE, 
                        fill = TRUE, quote = "", comment.char = "")
     
-    # Step 7: Extract the sample identifier from the file name
     file_name <- basename(input_file)
     sample_id <- gsub("\\..*$", "", file_name)  # Remove everything after the first dot (e.g., "processed_CC01_S1")
     sample_id <- gsub("^processed_", "", sample_id)  # Remove the "processed_" prefix if it exists
     
-    # Step 8: Filter the reference data for the current sample
     sample_data <- subset(reference_data, Sample == sample_id)
     
     if (nrow(sample_data) == 0) {
@@ -743,9 +648,7 @@ for (input_file in file_list) {
       next
     }
     
-    # Step 9: Match Gene.refGene and populate the Pfam column
     if ("Pfam" %in% colnames(data)) {
-      # If Pfam column already exists, update it
       data$Pfam <- sapply(data$Gene.refGene, function(gene) {
         pfam_value <- sample_data$Pfam[sample_data$Gene.refGene == gene]
         if (length(pfam_value) > 0) {
@@ -755,7 +658,6 @@ for (input_file in file_list) {
         }
       })
     } else {
-      # If Pfam column does not exist, create it
       data$Pfam <- sapply(data$Gene.refGene, function(gene) {
         pfam_value <- sample_data$Pfam[sample_data$Gene.refGene == gene]
         if (length(pfam_value) > 0) {
@@ -766,7 +668,6 @@ for (input_file in file_list) {
       })
     }
     
-    # Step 10: Save the updated file to the output directory
     output_file <- file.path(output_dir, file_name)
     write.table(data, output_file, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
     
@@ -781,31 +682,24 @@ for (input_file in file_list) {
 ##Pre assigning ACMG Para
 
 ```{r}
-# Step 1: Define input and output directories
 input_dir <- "C:/5"  # Directory containing the 83 input files
 output_dir <- "C:/6"  # Directory to save updated files
 
-# Step 2: Ensure the output directory exists
 if (!dir.exists(output_dir)) {
   dir.create(output_dir)
 }
 
-# Step 3: List all input files
 file_list <- list.files(input_dir, pattern = "*.txt", full.names = TRUE)
 
-# Step 4: Loop through each input file
 for (input_file in file_list) {
   cat("Processing file:", input_file, "\n")
   
   tryCatch({
-    # Step 5: Read the input file
     data <- read.table(input_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE, 
                        fill = TRUE, quote = "", comment.char = "")
     
-    # Step 6: Trim whitespace from column names
     colnames(data) <- trimws(colnames(data))
     
-    # Step 7: Check if the required AF columns exist
     af_columns <- c("ExAC_ALL_AF", "ExAC_SAS_AF", "esp_AF", "g1000_AF")
     missing_columns <- setdiff(af_columns, colnames(data))
     if (length(missing_columns) > 0) {
@@ -813,7 +707,6 @@ for (input_file in file_list) {
       next
     }
     
-    # Step 8: Create the AFS_Para column based on the AF parameters
     data$AFS_Para <- apply(data[, af_columns], 1, function(row) {
       pm2_count <- sum(row == "PM2", na.rm = TRUE)
       bs2_count <- sum(row == "BS1", na.rm = TRUE)
@@ -832,11 +725,9 @@ for (input_file in file_list) {
       }
     })
     
-    # Step 9: Move the AFS_Para column to the front
     data <- data[, c("AFS_Para", setdiff(colnames(data), "AFS_Para"))]
     
     
-    # Step 10: Save the updated file to the output directory
     file_name <- basename(input_file)
     output_file <- file.path(output_dir, file_name)
     write.table(data, output_file, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
@@ -853,35 +744,28 @@ for (input_file in file_list) {
 ## Assign ACMG parameters
 
 ```{r}
-# Step 1: Define input and output directories
 input_dir <- "C:/7"  # Directory containing the 83 input files
 output_dir <- "C:/8"  # Directory to save updated files
 
-# Step 2: Ensure the output directory exists
 if (!dir.exists(output_dir)) {
   dir.create(output_dir)
 }
 
-# Step 3: List all input files
 file_list <- list.files(input_dir, pattern = "*.txt", full.names = TRUE)
 
 
-# Step 4: Loop through each input file
 for (input_file in file_list) {
   cat("Processing file:", input_file, "\n")
   
   
   tryCatch({
-    # Step 5: Read the input file
     data <- read.table(input_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE, 
                        fill = TRUE, quote = "", comment.char = "")
     
     
-    # Step 6: Trim whitespace from column names
     colnames(data) <- trimws(colnames(data))
     
     
-    # Step 7: Check if the required columns exist
     required_columns <- c("AFS_Para", "Lit", "Pfam", "Variant_Classification")
     missing_columns <- setdiff(required_columns, colnames(data))
     if (length(missing_columns) > 0) {
@@ -889,105 +773,85 @@ for (input_file in file_list) {
       next
     }
     
-    # Step 8: Create the A_CMG column based on the rules
     data$A_CMG <- apply(data[, required_columns], 1, function(row) {
       afs_para <- row["AFS_Para"]
       lit <- row["Lit"]
       pfam <- row["Pfam"]
       var_class <- row["Variant_Classification"]
       
-      # Rule 1: If all 4 are NA
       if (all(is.na(row))) {
         return(NA)
       }
       
-      # Rule 2: If BS1, NA, NA, BP4
       if (!is.na(afs_para) && afs_para == "BS1" && is.na(lit) && is.na(pfam) && !is.na(var_class) && var_class == "BP4") {
         return("Likely Benign (I)")
       }
       
-      # Rule 3: If BS1, NA, NA, NA
       if (!is.na(afs_para) && afs_para == "BS1" && is.na(lit) && is.na(pfam) && is.na(var_class)) {
         return("VUS")
       }
       
-      # Rule 4: If BS1, PS1/PS3, PM1, BP4
       if (!is.na(afs_para) && afs_para == "BS1" && !is.na(lit) && grepl("PS1|PS3", lit) && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "BP4") {
         return("VUS (I)")
       }
       
-      # Rule 5: If PM2, NA, NA, NA
       if (!is.na(afs_para) && afs_para == "PM2" && is.na(lit) && is.na(pfam) && is.na(var_class)) {
         return("VUS")
       }
       
-      # Rule 6: If PM2, NA, NA, BP4
       if (!is.na(afs_para) && afs_para == "PM2" && is.na(lit) && is.na(pfam) && !is.na(var_class) && var_class == "BP4") {
         return("VUS")
       }
       
-      # Rule 7: If PM2, NA, NA, PP3
       if (!is.na(afs_para) && afs_para == "PM2" && is.na(lit) && is.na(pfam) && !is.na(var_class) && var_class == "PP3") {
         return("VUS")
       }
       
-      # Rule 8: If PM2, PS1, PM1, PP3
       if (!is.na(afs_para) && afs_para == "PM2" && !is.na(lit) && lit == "PS1" && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "PP3") {
         return("Likely Pathogenic (II)")
       }
       
-      # Rule 9: If BS1, NA, PM1, BP4
       if (!is.na(afs_para) && afs_para == "BS1" && is.na(lit) && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "BP4") {
         return("Likely Benign (I)")
       }
       
-      # Rule 10: If NA, NA, PM1, PP3
       if (is.na(afs_para) && is.na(lit) && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "PP3") {
         return("VUS")
       }
       
-      # Rule 11: If NA, BS3, PM1, PP3
       if (is.na(afs_para) && !is.na(lit) && lit == "BS3" && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "PP3") {
         return("VUS")
       }
       
       
-      # Rule 12: If NA, PSI/PS3, PM1, PP3
       if (is.na(afs_para) && !is.na(lit) && grepl("PS1|PS3", lit) && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "PP3") {
         return("Pathogenic (II)")
       }
       
-      # Rule 13: If NA, PS1, PM1, PP2
       if (is.na(afs_para) && !is.na(lit) && lit == "PS1" && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "PP2") {
         return("Likely Pathogenic (II)")
       }
       
       
-      # Rule 14: If NA, PS3/PS4/PM5, PM1, PP3
       if (is.na(afs_para) && !is.na(lit) && grepl("PS3|PS4|PM5", lit) && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "PP3") {
         return("Pathogenic (II)")
       }
       
       
-      # Rule 15: If PM2, BS4, NA, PP3
       if (!is.na(afs_para) && afs_para == "PM2" && !is.na(lit) && lit == "BS4" && is.na(pfam) && !is.na(var_class) && var_class == "PP3") {
         return("VUS")
       }
       
       
-      # Rule 16: If PM2, PM5, PM1, PP3
       if (!is.na(afs_para) && afs_para == "PM2" && !is.na(lit) && lit == "PM5" && !is.na(pfam) && pfam == "PM1" && !is.na(var_class) && var_class == "PP3") {
         return("Likely Pathogenic (IV)")
       }
       
-      # Default case
       return(NA)
     })
     
-    # Step 9: Move A_CMG column to the front
     data <- data[, c("A_CMG", setdiff(colnames(data), "A_CMG"))]
     
-    # Step 9: Save the updated file to the output directory
     file_name <- basename(input_file)
     output_file <- file.path(output_dir, file_name)
     write.table(data, output_file, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
