@@ -1,0 +1,11 @@
+
+
+
+clean <- c("AAAA BBBBBBB CCCCC DDDDD EE F GGG HHHHHHHHHH III J K LLLL ")
+
+print_strings <- function(strings) {
+  cat(paste0('"', strings, '"', collapse = ", "))
+}
+
+
+print_strings(clean)
